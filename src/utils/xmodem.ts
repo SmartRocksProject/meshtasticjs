@@ -37,6 +37,7 @@ export class XModem {
       const interval = setInterval(() => {
         if (this.fileContentReceived) {
           clearInterval(interval);
+          this.fileContentReceived = false;
           const fileContents = this.rxBuffer.reduce(
             (acc: Uint8Array, curr) => new Uint8Array([...acc, ...curr])
           ).reduce((acc: string, curr) => acc + String.fromCharCode(curr), "");
