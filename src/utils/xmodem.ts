@@ -11,6 +11,7 @@ export class XModem {
   private textEncoder: TextEncoder;
   private counter: number;
   private fileContentReceived: boolean;
+  private fileTransferInProgress: boolean;
 
   constructor(sendRaw: XModemProps) {
     this.sendRaw = sendRaw;
@@ -19,14 +20,16 @@ export class XModem {
     this.textEncoder = new TextEncoder();
     this.counter = 0;
     this.fileContentReceived = false;
+    this.fileTransferInProgress = false;
   }
 
   async downloadFile(filename: string): Promise<string> {
     console.log("XModem - getFile");
     console.log(filename);
 
-    // Await file content
-    await this.sendCommand(
+    // Send command to start file transfer
+    this.fileTransferInProgress = true;
+    this.sendCommand(
       Protobuf.XModem_Control.STX,
       this.textEncoder.encode(filename),
       0
@@ -35,13 +38,17 @@ export class XModem {
     // Return a promise that will be resolved when the file content is received
     return new Promise((resolve) => {
       const interval = setInterval(() => {
-        if (this.fileContentReceived) {
+        if (this.fileContentReceived && !this.fileTransferInProgress) {
           clearInterval(interval);
           this.fileContentReceived = false;
           const fileContents = this.rxBuffer.reduce(
             (acc: Uint8Array, curr) => new Uint8Array([...acc, ...curr])
           ).reduce((acc: string, curr) => acc + String.fromCharCode(curr), "");
           resolve(fileContents);
+        } else if(!this.fileTransferInProgress) {
+          clearInterval(interval);
+          this.fileContentReceived = false;
+          resolve("__NO_FILE__");
         }
       }, 100);
     });
@@ -94,18 +101,9 @@ export class XModem {
       case Protobuf.XModem_Control.STX:
         break;
       case Protobuf.XModem_Control.EOT:
-        // Get file content
-        /*
-        const fileContent = this.rxBuffer
-          .reduce((acc: Uint8Array, curr) => new Uint8Array([...acc, ...curr]))
-          .reduce((acc: string, curr) => acc + String.fromCharCode(curr), "");
-
-        // Log file content
-        console.log(fileContent);
-        */
-
         // Notify that the file content has been received
         this.fileContentReceived = true;
+        this.fileTransferInProgress = false;
 
         // end of transmission
         break;
@@ -134,6 +132,7 @@ export class XModem {
         break;
       case Protobuf.XModem_Control.CAN:
         this.clear();
+        this.fileTransferInProgress = false;
         break;
       case Protobuf.XModem_Control.CTRLZ:
         break;
