@@ -10,7 +10,8 @@ export class XModem {
   private txBuffer: Uint8Array[];
   private textEncoder: TextEncoder;
   private counter: number;
-  private fileContentResolve: (value: string) => void;
+  private fileContentReceived: boolean;
+  private fileTransferInProgress: boolean;
 
   constructor(sendRaw: XModemProps) {
     this.sendRaw = sendRaw;
@@ -18,15 +19,17 @@ export class XModem {
     this.txBuffer = [];
     this.textEncoder = new TextEncoder();
     this.counter = 0;
-    this.fileContentResolve = () => {};
+    this.fileContentReceived = false;
+    this.fileTransferInProgress = false;
   }
 
   async downloadFile(filename: string): Promise<string> {
     console.log("XModem - getFile");
     console.log(filename);
 
-    // Await file content
-    await this.sendCommand(
+    // Send command to start file transfer
+    this.fileTransferInProgress = true;
+    this.sendCommand(
       Protobuf.XModem_Control.STX,
       this.textEncoder.encode(filename),
       0
@@ -34,7 +37,20 @@ export class XModem {
 
     // Return a promise that will be resolved when the file content is received
     return new Promise((resolve) => {
-      this.fileContentResolve = resolve;
+      const interval = setInterval(() => {
+        if (this.fileContentReceived && !this.fileTransferInProgress) {
+          clearInterval(interval);
+          this.fileContentReceived = false;
+          const fileContents = this.rxBuffer.reduce(
+            (acc: Uint8Array, curr) => new Uint8Array([...acc, ...curr])
+          ).reduce((acc: string, curr) => acc + String.fromCharCode(curr), "");
+          resolve(fileContents);
+        } else if(!this.fileTransferInProgress) {
+          clearInterval(interval);
+          this.fileContentReceived = false;
+          resolve("__NO_FILE__");
+        }
+      }, 100);
     });
   }
 
@@ -80,38 +96,14 @@ export class XModem {
         break;
       case Protobuf.XModem_Control.SOH:
         this.counter = packet.seq;
-        //if (this.validateCRC16(packet)) {
         this.rxBuffer[this.counter] = packet.buffer;
         return this.sendCommand(Protobuf.XModem_Control.ACK);
-      //} else {
-      //  return this.sendCommand(
-      //    Protobuf.XModem_Control.NAK,
-      //    undefined,
-      //    packet.seq
-      //  );
-      //}
       case Protobuf.XModem_Control.STX:
         break;
       case Protobuf.XModem_Control.EOT:
-        // Get file content
-        const fileContent = this.rxBuffer
-          .reduce((acc: Uint8Array, curr) => new Uint8Array([...acc, ...curr]))
-          .reduce((acc: string, curr) => acc + String.fromCharCode(curr), "");
-
-        // Log file content
-        console.log(fileContent);
-
-        // Send file content to promise if fileContentResolve is initialized
-        if (this.fileContentResolve) {
-          this.fileContentResolve(fileContent);
-        } else {
-          console.log(
-            "XModem - fileContentResolve is not initialized, file content will not be sent to promise"
-          );
-        }
-
-        // Clear buffers
-        this.clear();
+        // Notify that the file content has been received
+        this.fileContentReceived = true;
+        this.fileTransferInProgress = false;
 
         // end of transmission
         break;
@@ -140,6 +132,7 @@ export class XModem {
         break;
       case Protobuf.XModem_Control.CAN:
         this.clear();
+        this.fileTransferInProgress = false;
         break;
       case Protobuf.XModem_Control.CTRLZ:
         break;
