@@ -33,7 +33,7 @@ export class XModem {
       Protobuf.XModem_Control.STX,
       this.textEncoder.encode(filename),
       0,
-      false
+      true
     );
     console.log("XMODEM - DOWNLOAD FILE: Test")
 
