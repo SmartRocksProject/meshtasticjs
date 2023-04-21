@@ -73,7 +73,7 @@ export abstract class IMeshDevice {
   }
 
   /** Abstract method that writes data to the radio */
-  protected abstract writeToRadio(data: Uint8Array, wait: boolean): Promise<void>;
+  protected abstract writeToRadio(data: Uint8Array): Promise<void>;
 
   /** Abstract method that connects to the radio */
   protected abstract connect(
@@ -198,7 +198,7 @@ export abstract class IMeshDevice {
       meshPacket.rxTime = Math.trunc(new Date().getTime() / 1000);
       this.handleMeshPacket(meshPacket);
     }
-    return this.sendRaw(toRadioMessage.toBinary(), true, meshPacket.id);
+    return this.sendRaw(toRadioMessage.toBinary(), meshPacket.id);
   }
 
   /**
@@ -206,7 +206,6 @@ export abstract class IMeshDevice {
    */
   public async sendRaw(
     toRadio: Uint8Array,
-    wait: boolean = true,
     id: number = this.generateRandId()
   ): Promise<number> {
     if (toRadio.length > 512) {
@@ -218,7 +217,7 @@ export abstract class IMeshDevice {
       });
 
       await this.queue.processQueue(async (data) => {
-        await this.writeToRadio(data, wait);
+        await this.writeToRadio(data);
       });
 
       return this.queue.wait(id);
@@ -682,7 +681,7 @@ export abstract class IMeshDevice {
    * Gets called whenever a fromRadio message is received from device, returns
    * fromRadio data
    */
-  protected handleFromRadio(fromRadio: Uint8Array): void {
+  protected handleFromRadio(fromRadio: Uint8Array): boolean {
     const decodedMessage = Protobuf.FromRadio.fromBinary(fromRadio);
     this.events.onFromRadio.emit(decodedMessage);
 
@@ -824,6 +823,8 @@ export abstract class IMeshDevice {
         void this.XModem.handlePacket(decodedMessage.payloadVariant.value);
         break;
     }
+
+    return false;
   }
 
   /** Completes all SubEvents */

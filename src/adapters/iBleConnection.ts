@@ -232,14 +232,9 @@ export class IBLEConnection extends IMeshDevice {
   /**
    * Sends supplied protobuf message to the radio
    */
-  protected async writeToRadio(data: Uint8Array, wait: boolean = true): Promise<void> {
+  protected async writeToRadio(data: Uint8Array): Promise<void> {
     await this.toRadioCharacteristic?.writeValue(typedArrayToBuffer(data));
     // This should be automatic (onCharacteristicValueChanged)
-    if(wait) {
-      await this.readFromRadio();
-    } else {
-      // Resolves immediately
-      return Promise.resolve();
-    }
+    await this.readFromRadio();
   }
 }

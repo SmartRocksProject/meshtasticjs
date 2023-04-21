@@ -2,7 +2,7 @@ import { Protobuf } from "../index.js";
 import crc16ccitt from "crc/calculators/crc16ccitt";
 
 //if counter > 35 then reset counter/clear/error/reject promise
-type XModemProps = (toRadio: Uint8Array, wait?: boolean, id?: number) => Promise<number>;
+type XModemProps = (toRadio: Uint8Array, id?: number) => Promise<number>;
 
 export class XModem {
   private sendRaw: XModemProps;
@@ -29,11 +29,10 @@ export class XModem {
 
     // Send command to start file transfer
     this.fileTransferInProgress = true;
-    await this.sendCommand(
+    void this.sendCommand(
       Protobuf.XModem_Control.STX,
       this.textEncoder.encode(filename),
-      0,
-      true
+      0
     );
     console.log("XMODEM - DOWNLOAD FILE: Test")
 
@@ -72,7 +71,6 @@ export class XModem {
     command: Protobuf.XModem_Control,
     buffer?: Uint8Array,
     sequence?: number,
-    wait: boolean = true,
     crc16?: number,
     // boolean for if we wait for promise or not
   ): Promise<number> {
@@ -87,12 +85,12 @@ export class XModem {
         }
       }
     });
-    return this.sendRaw(toRadio.toBinary(), wait);
+    return this.sendRaw(toRadio.toBinary());
   }
 
   async handlePacket(packet: Protobuf.XModem): Promise<number> {
     console.log(`${Protobuf.XModem_Control[packet.control]} - ${packet.seq}`);
-    //await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     switch (packet.control) {
       case Protobuf.XModem_Control.NUL:
