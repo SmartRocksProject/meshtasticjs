@@ -681,7 +681,7 @@ export abstract class IMeshDevice {
    * Gets called whenever a fromRadio message is received from device, returns
    * fromRadio data
    */
-  protected handleFromRadio(fromRadio: Uint8Array): void {
+  protected handleFromRadio(fromRadio: Uint8Array): boolean {
     const decodedMessage = Protobuf.FromRadio.fromBinary(fromRadio);
     this.events.onFromRadio.emit(decodedMessage);
 
@@ -823,6 +823,8 @@ export abstract class IMeshDevice {
         void this.XModem.handlePacket(decodedMessage.payloadVariant.value);
         break;
     }
+
+    return false;
   }
 
   /** Completes all SubEvents */

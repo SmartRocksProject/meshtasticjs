@@ -29,7 +29,7 @@ export class XModem {
 
     // Send command to start file transfer
     this.fileTransferInProgress = true;
-    this.sendCommand(
+    void this.sendCommand(
       Protobuf.XModem_Control.STX,
       this.textEncoder.encode(filename),
       0
@@ -71,7 +71,8 @@ export class XModem {
     command: Protobuf.XModem_Control,
     buffer?: Uint8Array,
     sequence?: number,
-    crc16?: number
+    crc16?: number,
+    // boolean for if we wait for promise or not
   ): Promise<number> {
     const toRadio = new Protobuf.ToRadio({
       payloadVariant: {
