@@ -92,7 +92,7 @@ export class XModem {
 
   async handlePacket(packet: Protobuf.XModem): Promise<number> {
     console.log(`${Protobuf.XModem_Control[packet.control]} - ${packet.seq}`);
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    //await new Promise((resolve) => setTimeout(resolve, 100));
 
     switch (packet.control) {
       case Protobuf.XModem_Control.NUL:
