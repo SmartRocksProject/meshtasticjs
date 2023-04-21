@@ -29,7 +29,7 @@ export class XModem {
 
     // Send command to start file transfer
     this.fileTransferInProgress = true;
-    this.sendCommand(
+    await this.sendCommand(
       Protobuf.XModem_Control.STX,
       this.textEncoder.encode(filename),
       0,
