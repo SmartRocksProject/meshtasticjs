@@ -73,7 +73,7 @@ export abstract class IMeshDevice {
   }
 
   /** Abstract method that writes data to the radio */
-  protected abstract writeToRadio(data: Uint8Array): Promise<void>;
+  protected abstract writeToRadio(data: Uint8Array, wait: boolean): Promise<void>;
 
   /** Abstract method that connects to the radio */
   protected abstract connect(
@@ -198,7 +198,7 @@ export abstract class IMeshDevice {
       meshPacket.rxTime = Math.trunc(new Date().getTime() / 1000);
       this.handleMeshPacket(meshPacket);
     }
-    return this.sendRaw(toRadioMessage.toBinary(), meshPacket.id);
+    return this.sendRaw(toRadioMessage.toBinary(), true, meshPacket.id);
   }
 
   /**
@@ -206,6 +206,7 @@ export abstract class IMeshDevice {
    */
   public async sendRaw(
     toRadio: Uint8Array,
+    wait: boolean = true,
     id: number = this.generateRandId()
   ): Promise<number> {
     if (toRadio.length > 512) {
@@ -217,7 +218,7 @@ export abstract class IMeshDevice {
       });
 
       await this.queue.processQueue(async (data) => {
-        await this.writeToRadio(data);
+        await this.writeToRadio(data, wait);
       });
 
       return this.queue.wait(id);

@@ -2,7 +2,7 @@ import { Protobuf } from "../index.js";
 import crc16ccitt from "crc/calculators/crc16ccitt";
 
 //if counter > 35 then reset counter/clear/error/reject promise
-type XModemProps = (toRadio: Uint8Array, id?: number) => Promise<number>;
+type XModemProps = (toRadio: Uint8Array, wait?: boolean, id?: number) => Promise<number>;
 
 export class XModem {
   private sendRaw: XModemProps;
@@ -32,7 +32,8 @@ export class XModem {
     this.sendCommand(
       Protobuf.XModem_Control.STX,
       this.textEncoder.encode(filename),
-      0
+      0,
+      false
     );
     console.log("XMODEM - DOWNLOAD FILE: Test")
 
@@ -71,7 +72,9 @@ export class XModem {
     command: Protobuf.XModem_Control,
     buffer?: Uint8Array,
     sequence?: number,
-    crc16?: number
+    wait: boolean = true,
+    crc16?: number,
+    // boolean for if we wait for promise or not
   ): Promise<number> {
     const toRadio = new Protobuf.ToRadio({
       payloadVariant: {
@@ -84,7 +87,7 @@ export class XModem {
         }
       }
     });
-    return this.sendRaw(toRadio.toBinary());
+    return this.sendRaw(toRadio.toBinary(), wait);
   }
 
   async handlePacket(packet: Protobuf.XModem): Promise<number> {
@@ -115,6 +118,7 @@ export class XModem {
             Protobuf.XModem_Control.SOH,
             this.txBuffer[this.counter - 1],
             this.counter,
+            true,
             crc16ccitt(this.txBuffer[this.counter - 1] ?? new Uint8Array())
           );
         } else if (this.counter === this.txBuffer.length + 1) {
@@ -128,6 +132,7 @@ export class XModem {
           Protobuf.XModem_Control.SOH,
           this.txBuffer[this.counter],
           this.counter,
+          true,
           crc16ccitt(this.txBuffer[this.counter - 1] ?? new Uint8Array())
         );
         break;
