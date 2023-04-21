@@ -116,7 +116,6 @@ export class XModem {
             Protobuf.XModem_Control.SOH,
             this.txBuffer[this.counter - 1],
             this.counter,
-            true,
             crc16ccitt(this.txBuffer[this.counter - 1] ?? new Uint8Array())
           );
         } else if (this.counter === this.txBuffer.length + 1) {
@@ -130,7 +129,6 @@ export class XModem {
           Protobuf.XModem_Control.SOH,
           this.txBuffer[this.counter],
           this.counter,
-          true,
           crc16ccitt(this.txBuffer[this.counter - 1] ?? new Uint8Array())
         );
         break;
