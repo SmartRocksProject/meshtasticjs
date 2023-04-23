@@ -34,7 +34,6 @@ export class XModem {
       this.textEncoder.encode(filename),
       0
     );
-    console.log("XMODEM - DOWNLOAD FILE: Test")
 
     // Return a promise that will be resolved when the file content is received
     return new Promise((resolve) => {
